@@ -1,85 +1,56 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
-	"log"
-	"net/http"
 	"os"
+	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/joho/godotenv"
 )
 
-const (
-	OPENAI_URL  = "https://api.openai.com/v1/chat/completions"
-	TEMPERATURE = 0.1
-)
+func init() {
 
-type Message struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
-
-func fetchAPIKey() string {
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	if apiKey == "" {
-		log.Fatal("OPENAI_API_KEY environment variable is not set")
-	}
-	return apiKey
-}
-
-func createRequestPayload(input string) []byte {
-	data := map[string]interface{}{
-		"model":       "gpt-4",
-		"temperature": TEMPERATURE,
-		"messages": []Message{
-			{
-				Role:    "system",
-				Content: "You are a helpful assistant.",
-			},
-			{
-				Role:    "user",
-				Content: input,
-			},
-		},
+	// Set log level based on environment variables
+	switch logLevel := strings.ToLower(os.Getenv("LOG_LEVEL")); logLevel {
+	case "trace":
+		log.SetLevel(log.TraceLevel)
+	case "debug":
+		log.SetLevel(log.DebugLevel)
+	case "info":
+		log.SetLevel(log.InfoLevel)
+	case "warn":
+		log.SetLevel(log.WarnLevel)
+	default:
+		log.SetLevel(log.ErrorLevel)
 	}
 
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		log.Fatalf("Failed to encode data to JSON: %v", err)
-	}
+	flag.Parse()
 
-	return jsonData
-}
-
-func sendRequest(data []byte, apiKey string) string {
-	req, err := http.NewRequest("POST", OPENAI_URL, bytes.NewBuffer(data))
-	if err != nil {
-		log.Fatalf("Failed to create request: %v", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+apiKey)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatalf("Failed to make the request: %v", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalf("Failed to read response body: %v", err)
-	}
-
-	return string(body)
 }
 
 func main() {
+
+	if *projectId == "" {
+		log.Println("The 'project-id' flag is required")
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	if *collectionName == "" {
+		log.Println("The 'collection-name' flag is required")
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	if *conversationName == "" {
+		log.Println("The 'conversation-name' flag is required")
+		flag.Usage()
+		os.Exit(1)
+	}
 
 	err := godotenv.Load()
 	if err != nil {
@@ -92,10 +63,16 @@ func main() {
 	}
 	input := flag.Args()[0]
 
-	apiKey := fetchAPIKey()
-	payload := createRequestPayload(input)
+	apiKey := fetchAPIKey(projectId)
+	payload := createRequestPayload(&input)
 	response := sendRequest(payload, apiKey)
 
+	var chatCompletion ChatCompletion
+	err = json.Unmarshal([]byte(response), &chatCompletion)
+	if err != nil {
+		log.Fatalf("Error decoding the JSON response: %v", err)
+	}
+
 	// Print the JSON response
-	fmt.Println(response)
+	fmt.Println(*chatCompletion.Choices[0].Message.Content)
 }
