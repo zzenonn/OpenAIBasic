@@ -67,6 +67,9 @@ func main() {
 	payload := createRequestPayload(&input)
 	response := sendRequest(payload, apiKey)
 
+	// fmt.Println("Response: ")
+	// fmt.Println(response)
+
 	var chatCompletion ChatCompletion
 	err = json.Unmarshal([]byte(response), &chatCompletion)
 	if err != nil {

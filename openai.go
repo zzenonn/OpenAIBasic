@@ -16,7 +16,7 @@ import (
 
 const (
 	OPENAI_URL  = "https://api.openai.com/v1/chat/completions"
-	TEMPERATURE = 0.1
+	TEMPERATURE = 0.3
 )
 
 func getSecret(secretName string) (string, error) {
@@ -51,9 +51,9 @@ func fetchAPIKey(projectName *string) string {
 
 func createRequestPayload(input *string) []byte {
 
-	modelVal := "gpt-4"
+	modelVal := "chatgpt-4o-latest"
 	roleSystem := "system"
-	systemContent := `You are a developer trying to write testing scripts for an application`
+	systemContent := ``
 	roleUser := "user"
 
 	data := map[string]interface{}{

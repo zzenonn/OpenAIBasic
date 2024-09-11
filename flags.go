@@ -11,6 +11,3 @@ var (
 	outputRaw        = flag.Bool("output-raw", false, "outputs the raw response from OpenAI")
 )
 
-func init() {
-	flag.Parse()
-}
